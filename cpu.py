@@ -47,19 +47,27 @@ class CPU:
 
     def __init__(self):
         """Construct a new CPU."""
-        self.pc = 0 # Program Counter, address of the currently executing instruction
-        self.ram = [0] * 256  # 256 bytes of memory (RAM)
         self.register = [0] * 8  # 8 general-purpose CPU registers
+        self.ram = [0] * 256  # 256 bytes of memory (RAM)
+
+        self.pc = 0 # Program Counter, address of the currently executing instruction
         self.register[7] = 0xF4 # R7 is the SP
         self.flag = 0b00000000
         self.running = True
 
         self.branch_table = {
-          LDI: self.ldi,
-          PRN: self.prn,
-          MUL: self.mul,
-          ADD: self.add,
-          CMP: self.cmp,
+          LDI: self.LDI,
+          PRN: self.PRN,
+          MUL: self.MUL,
+          ADD: self.ADD,
+          CMP: self.CMP,
+          AND: self.AND,
+          OR: self.OR,
+          XOR: self.XOR,
+          NOT: self.NOT,
+          SHL: self.SHL,
+          SHR: self.SHR,
+          MOD: self.MOD,
           PUSH: self.push,
           POP: self.pop,
           CALL: self.call,
@@ -91,20 +99,55 @@ class CPU:
 
 
     def alu(self, op, register_a, register_b):
-        """ALU operations."""
+        """ ALU operations. """
 
         if op in self.branch_table:
           self.branch_table[op](register_a, register_b)
         else:
             raise Exception("Unsupported ALU operation")
 
-    def add(self, register_a, register_b):
+    def ADD(self, register_a, register_b):
+      """ Add the value in two registers and store the result in registerA """
       self.register[register_a] += self.register[register_b]
 
-    def mul(self, register_a, register_b):
+    def MUL(self, register_a, register_b):
+      """ Multiply the values in two registers together and store the result in registerA. """
       self.register[register_a] *= self.register[register_b]
 
-    def cmp(self, register_a, register_b):
+    def AND(self, register_a, register_b):
+      """ Bitwise-AND the values in registerA and registerB, then store the result in registerA. """
+      self.register[register_a] = self.register[register_a] & self.register[register_b]
+
+    def OR(self, register_a, register_b):
+      """ Perform a bitwise-OR between the values in registerA and registerB, storing the result in registerA. """
+      self.register[register_a] = self.register[register_a] | self.register[register_b]
+
+    def XOR(self, register_a, register_b):
+      """ Perform a bitwise-XOR between the values in registerA and registerB, storing the result in registerA. """
+      self.register[register_a] = self.register[register_a] ^ self.register[register_b]
+
+    def NOT(self, register_a, register_b):
+      """ Perform a bitwise-NOT on the value in a register, storing the result in the register. """
+      self.register[register_a] = ~self.register[register_a]
+
+    def SHL(self, register_a, register_b):
+      """ Shift the value in registerA left by the number of bits specified in registerB, filling the low bits with 0. """
+      self.register[register_a] = self.register[register_a] << self.register[register_b]
+
+    def SHR(self, register_a, register_b):
+      """ Shift the value in registerA right by the number of bits specified in registerB, filling the high bits with 0. """
+      self.register[register_a] = self.register[register_a] >> self.register[register_b]
+
+    def MOD(self, register_a, register_b):
+      """ Divide the value in the first register by the value in the second, storing the remainder of the result in registerA. """
+      if self.register[register_b] == 0:
+        print("Unable to divide by 0")
+        sys.exit()
+
+      self.register[register_a] = self.register[register_a] % self.register[register_b]
+
+    def CMP(self, register_a, register_b):
+      """ Compare the values in two registers. """
       if self.register[register_a] == self.register[register_b]:
         self.flag = 0b00000001
       elif self.register[register_a] > self.register[register_b]:
@@ -113,14 +156,14 @@ class CPU:
         self.flag = 0b00000100
       # print(bin(self.flag))
 
-    def ldi(self):
+    def LDI(self):
       """ Set the value of a register to an integer. """
       reg_number = self.ram_read(self.pc + 1)
       value = self.ram_read(self.pc + 2)
 
       self.register[reg_number] = value
 
-    def prn(self):
+    def PRN(self):
       """ Print numeric value stored in the given register. """
       reg_number = self.ram_read(self.pc + 1)
       print(self.register[reg_number])
