@@ -64,6 +64,7 @@ class CPU:
           POP: self.pop,
           CALL: self.call,
           RET: self.ret,
+          JMP: self.jmp
         }
 
 
@@ -129,6 +130,11 @@ class CPU:
       self.register[self.ram_read(self.pc + 1)] = self.ram_read(self.register[7])
       self.register[7] += 1
       self.pc = self.pc + 2
+
+    def jmp(self):
+      """ Jump to the address stored in the given register. """
+      reg_number = self.ram_read(self.pc + 1)
+      self.pc = self.register[reg_number]
 
     def call(self, reg_number, value):
       """ Calls a subroutine (function) at the address stored in the register. """
