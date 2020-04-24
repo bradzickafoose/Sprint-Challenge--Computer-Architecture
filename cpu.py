@@ -57,9 +57,9 @@ class CPU:
         self.branch_table = {
           LDI: self.ldi,
           PRN: self.prn,
-          MUL: "MUL",
-          ADD: "ADD",
-          CMP: "CMP",
+          MUL: self.mul,
+          ADD: self.add,
+          CMP: self.cmp,
           PUSH: self.push,
           POP: self.pop,
           CALL: self.call,
@@ -93,20 +93,25 @@ class CPU:
     def alu(self, op, register_a, register_b):
         """ALU operations."""
 
-        if op == ADD:
-            self.register[register_a] += self.register[register_b]
-        elif op == MUL:
-          self.register[register_a] *= self.register[register_b]
-        elif op == CMP:
-          if self.register[register_a] == self.register[register_b]:
-            self.flag = 0b00000001
-          elif self.register[register_a] > self.register[register_b]:
-            self.flag = 0b00000010
-          else:
-            self.flag = 0b00000100
+        if op in self.branch_table:
+          self.branch_table[op](register_a, register_b)
         else:
             raise Exception("Unsupported ALU operation")
 
+    def add(self, register_a, register_b):
+      self.register[register_a] += self.register[register_b]
+
+    def mul(self, register_a, register_b):
+      self.register[register_a] *= self.register[register_b]
+
+    def cmp(self, register_a, register_b):
+      if self.register[register_a] == self.register[register_b]:
+        self.flag = 0b00000001
+      elif self.register[register_a] > self.register[register_b]:
+        self.flag = 0b00000010
+      else:
+        self.flag = 0b00000100
+      # print(bin(self.flag))
 
     def ldi(self):
       """ Set the value of a register to an integer. """
@@ -143,7 +148,9 @@ class CPU:
       """ If equal flag is set (true), jump to the address stored in the given register. """
       reg_number = self.ram_read(self.pc + 1)
       equal = self.flag & 0b00000001
+      # print(self.flag & 0b1)
       if equal:
+        # print('It equals 1')
         self.pc = self.register[reg_number]
       else:
         self.pc += 2
@@ -153,6 +160,7 @@ class CPU:
       reg_number = self.ram_read(self.pc + 1)
       equal = self.flag & 0b00000001
       if not equal:
+        # print('It equals 0')
         self.pc = self.register[reg_number]
       else:
         self.pc += 2
@@ -196,24 +204,29 @@ class CPU:
 
         while self.running:
           ir = self.ram_read(self.pc) # Instruction Register, contains a copy of the currently executing instruction
+          # print(bin(ir))
           inst_len = (ir >> 6) + 0b1
-          is_ALU = (ir & 0b00100000) >> 5
+          is_ALU = (ir & 0b00100000) >> 5 == 0b1
+          sets_pc = (ir & 0b00010000) >> 4 == 0b1
 
           register_a = self.ram_read(self.pc+1)
           register_b = self.ram_read(self.pc+2)
 
           if is_ALU:
             self.alu(ir, register_a, register_b)
-            self.pc += inst_len
 
           elif ir in self.branch_table:
             self.branch_table[ir]()
-            self.pc += inst_len
 
           elif ir == HLT: # Halt
             self.running = False
 
           else:
-            print(f"Invalid instructions {ir}")
+            print(f"Invalid instructions {bin(ir)}")
             break
+
+          if not sets_pc:
+            self.pc += inst_len
+
+
 
