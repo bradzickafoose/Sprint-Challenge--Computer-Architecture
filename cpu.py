@@ -64,7 +64,9 @@ class CPU:
           POP: self.pop,
           CALL: self.call,
           RET: self.ret,
-          JMP: self.jmp
+          JMP: self.jmp,
+          JEQ: self.jeq,
+          JNE: self.jne
         }
 
 
@@ -105,6 +107,7 @@ class CPU:
         else:
             raise Exception("Unsupported ALU operation")
 
+
     def ldi(self):
       """ Set the value of a register to an integer. """
       reg_number = self.ram_read(self.pc + 1)
@@ -135,6 +138,24 @@ class CPU:
       """ Jump to the address stored in the given register. """
       reg_number = self.ram_read(self.pc + 1)
       self.pc = self.register[reg_number]
+
+    def jeq(self):
+      """ If equal flag is set (true), jump to the address stored in the given register. """
+      reg_number = self.ram_read(self.pc + 1)
+      equal = self.flag & 0b00000001
+      if equal:
+        self.pc = self.register[reg_number]
+      else:
+        self.pc += 2
+
+    def jne(self):
+      """ If E flag is clear (false, 0), jump to the address stored in the given register. """
+      reg_number = self.ram_read(self.pc + 1)
+      equal = self.flag & 0b00000001
+      if not equal:
+        self.pc = self.register[reg_number]
+      else:
+        self.pc += 2
 
     def call(self, reg_number, value):
       """ Calls a subroutine (function) at the address stored in the register. """
