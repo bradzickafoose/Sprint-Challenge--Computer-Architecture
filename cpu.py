@@ -51,6 +51,7 @@ class CPU:
         self.ram = [0] * 256  # 256 bytes of memory (RAM)
         self.register = [0] * 8  # 8 general-purpose CPU registers
         self.register[7] = 0xF4 # R7 is the SP
+        self.flag = 0b00000000
         self.running = True
 
         self.branch_table = {
@@ -58,6 +59,7 @@ class CPU:
           PRN: self.prn,
           MUL: "MUL",
           ADD: "ADD",
+          CMP: "CMP",
           PUSH: self.push,
           POP: self.pop,
           CALL: self.call,
@@ -92,6 +94,13 @@ class CPU:
             self.register[register_a] += self.register[register_b]
         elif op == MUL:
           self.register[register_a] *= self.register[register_b]
+        elif op == CMP:
+          if self.register[register_a] == self.register[register_b]:
+            self.flag = 0b00000001
+          elif self.register[register_a] > self.register[register_b]:
+            self.flag = 0b00000010
+          else:
+            self.flag = 0b00000100
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -168,9 +177,11 @@ class CPU:
 
           if is_ALU:
             self.alu(ir, register_a, register_b)
+            self.pc += inst_len
 
           elif ir in self.branch_table:
             self.branch_table[ir]()
+            self.pc += inst_len
 
           elif ir == HLT: # Halt
             self.running = False
@@ -178,6 +189,4 @@ class CPU:
           else:
             print(f"Invalid instructions {ir}")
             break
-
-          self.pc += inst_len
 
